@@ -16,7 +16,7 @@ function welcome(state) {
 }
 function quantities(item) { return `<div class="quantity"><button data-action="minus" data-id="${item.id}" aria-label="Decrease ${escape(item.name)}">−</button><output aria-label="Quantity">${item.quantity}</output><button data-action="plus" data-id="${item.id}" aria-label="Increase ${escape(item.name)}" ${item.quantity>=SHOP.maxQuantity?'disabled':''}>+</button></div>`; }
 function cart(state) {
-  return `<aside class="cart"><div class="cart-heading"><div><span class="eyebrow">MADE YOUR WAY</span><h2>Your bag <span class="count">${state.count}</span></h2></div><span class="bag-icon">♧</span></div><div class="cart-items">${state.items.length?state.items.map(p=>`<article class="cart-item" data-cart-id="${p.id}"><div class="mini-art" style="background:${p.color}">${p.art}</div><div class="cart-item-info"><strong>${escape(p.name)}</strong><span>${money(p.price)} each</span><div class="item-controls">${quantities(p)}<button class="remove" data-action="remove" data-id="${p.id}" aria-label="Remove ${escape(p.name)}">Remove</button></div></div><strong class="line-price">${money(p.subtotal)}</strong></article>`).join(''):`<div class="empty"><span>♧</span><h3>A little empty here</h3><p>Tap a favorite to add it to your bag.<br>Something good is waiting.</p></div>`}</div><div class="cart-bottom"><div class="row"><span>Subtotal</span><strong>${money(state.total)}</strong></div><p class="muted">Prices as shown. No additional fees.</p><div class="row total"><span>Total</span><strong key="${state.total}">${money(state.total)}</strong></div><p class="error" role="alert">${escape(error)}</p>${button('review','Review Order <span>→</span>','primary wide',!state.count?'disabled':'')}<div class="safe-note">✓ Review everything before you pay</div></div></aside>`;
+  return `<aside class="cart"><div class="cart-heading"><div><span class="eyebrow">MADE YOUR WAY</span><h2>Your bag <span class="count">${state.count}</span></h2></div><span class="bag-icon">♧</span></div><div class="cart-items">${state.items.length?state.items.map(p=>`<article class="cart-item" data-cart-id="${p.id}"><div class="mini-art" style="background:${p.color}">${p.art}</div><div class="cart-item-info"><strong>${escape(p.name)}</strong><span>${money(p.price)} each</span><div class="item-controls">${quantities(p)}<button class="remove" data-action="remove" data-id="${p.id}" aria-label="Remove ${escape(p.name)}">Remove</button></div></div><strong class="line-price">${money(p.subtotal)}</strong></article>`).join(''):`<div class="empty"><span>♧</span><h3>A little empty here</h3><p>Tap a favorite to add it to your bag.<br>Something good is waiting.</p></div>`}</div><div class="cart-bottom"><div class="row"><span>Subtotal</span><strong>${money(state.total)}</strong></div><p class="muted">Prices as shown. No additional fees.</p><div class="row total"><span>Total</span><strong key="${state.total}">${money(state.total)}</strong></div><p class="error" role="alert">${escape(error)}</p>${button('review','Review Order <span>→</span>','primary wide')}<div class="safe-note">✓ Review everything before you pay</div></div></aside>`;
 }
 function catalog(state) {
   const filtered=store.catalog.filter(p=>(category==='All items'||p.category===category)&&p.name.toLowerCase().includes(search.toLowerCase()));
@@ -42,12 +42,19 @@ let renderedScreen;
 function render(focusId) {
   const state=store.state;
   const sameScreen = renderedScreen === state.screen;
+  const previousTotal = root.querySelector('.total strong')?.textContent;
+  const previousItems = new Set([...root.querySelectorAll('[data-cart-id]')].map(el=>el.dataset.cartId));
   const scrollPositions = ['.catalog','.cart-items'].map(selector => [selector,root.querySelector(selector)?.scrollTop || 0]);
   const focused = document.activeElement?.closest('[data-action]');
   const focusData = focused ? {...focused.dataset} : null;
   root.innerHTML=header(state)+({welcome,order:catalog,review,payment,receipt}[state.screen])(state);
   if (sameScreen) {
     root.querySelector('.screen')?.classList.remove('screen');
+    for (const row of root.querySelectorAll('[data-cart-id]')) {
+      if (previousItems.has(row.dataset.cartId)) row.style.animation='none';
+    }
+    const total=root.querySelector('.total strong');
+    if(total?.textContent===previousTotal)total.style.animation='none';
     for (const [selector,top] of scrollPositions) { const el=root.querySelector(selector);if(el)el.scrollTop=top; }
     if (focusData && !focusId) {
       const equivalent=[...root.querySelectorAll('[data-action]')].find(el=>Object.entries(focusData).every(([key,value])=>el.dataset[key]===value));
@@ -63,7 +70,7 @@ function render(focusId) {
   updateClock();
 }
 function updateClock(){const el=document.querySelector('#clock');if(el)el.textContent=new Date().toLocaleString(SHOP.locale,{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});}
-root.addEventListener('input',event=>{if(event.target.id==='search'){search=event.target.value;const pos=event.target.selectionStart;render('search');document.querySelector('#search').setSelectionRange(pos,pos);}if(event.target.id==='cash'){cash=event.target.value;error='';document.querySelector('#payment-error').textContent='';}});
+root.addEventListener('input',event=>{if(event.target.id==='search'){search=event.target.value;render('search');}if(event.target.id==='cash'){cash=event.target.value;error='';event.target.removeAttribute('aria-invalid');document.querySelector('#payment-error').textContent='';}});
 root.addEventListener('click',event=>{
   const target=event.target.closest('[data-action]');if(!target||target.disabled)return;
   const {action,id}=target.dataset;
@@ -71,7 +78,7 @@ root.addEventListener('click',event=>{
     error='';const state=store.state;
     if(['add','plus','minus','remove'].includes(action)){
       const item=state.items.find(p=>p.id===id), qty=item?.quantity||0;
-      if(action==='remove'||action==='minus'&&qty===1){const row=root.querySelector(`[data-cart-id="${id}"]`);row?.classList.add('removing');store.setQuantity(id,0);notify('Item removed from your bag');setTimeout(()=>render(),160);return;}
+      if(action==='remove'||action==='minus'&&qty===1){store.setQuantity(id,0);notify('Item removed from your bag');render();return;}
       store.setQuantity(id,qty+(action==='minus'?-1:1));if(action==='add')notify(`${store.catalog.find(p=>p.id===id).name} added to your bag`);
     }
     if(action==='start')store.start();
@@ -81,10 +88,15 @@ root.addEventListener('click',event=>{
     if(action==='category')category=target.dataset.category;
     if(action==='method'){store.selectPayment(target.dataset.method);cash='';}
     if(action==='cash-preset')cash=target.dataset.value;
-    if(action==='key'){const k=target.dataset.key;cash=k==='⌫'?cash.slice(0,-1):cash.length<10?cash+k:cash;}
+    if(action==='key'){
+      const k=target.dataset.key;
+      const next=k==='⌫'?cash.slice(0,-1):k==='.'&&!cash?'0.':cash+k;
+      if(k!=='⌫'&&!/^\d{1,7}(\.\d{0,2})?$/.test(next))throw new Error('Use up to seven whole-number digits and two decimal places.');
+      cash=next;
+    }
     if(action==='reset'){clearTimeout(paymentTimer);clearTimeout(toastTimer);store.reset();cash='';category='All items';search='';document.querySelector('#toast').classList.remove('visible');}
     if(action==='pay'||action==='decline'){const token=store.beginPayment(cash);paymentTimer=setTimeout(()=>{store.finishPayment(token,action==='pay');render();},1400);}
     render();
-  } catch(err){error=err.message;render();if(store.state.screen!=='payment')notify(error);}
+  } catch(err){error=err.message;render();if(store.state.screen!=='payment')notify(error);else if(store.state.payment.method==='cash'){const input=document.querySelector('#cash');input?.setAttribute('aria-invalid','true');input?.focus({preventScroll:true});}}
 });
 render();setInterval(updateClock,30000);

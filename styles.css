@@ -767,7 +767,8 @@ footer {
   display:flex;
   justify-content:space-between;
   align-items:center;
-  gap:4px;
+  gap:8px;
+  flex-wrap:wrap;
   margin-top:9px;
 }
 
@@ -780,8 +781,8 @@ footer {
 }
 
 .quantity button {
-  min-width:44px;
-  min-height:44px;
+  min-width:48px;
+  min-height:48px;
   background:#f8fafc;
   font-size:20px;
   color:#0f172a;
@@ -796,9 +797,10 @@ footer {
 .remove {
   background:transparent;
   color:#64748b;
-  font-size:11px;
-  padding:6px;
-  min-height:44px;
+  font-size:12px;
+  padding:8px;
+  min-width:64px;
+  min-height:48px;
 }
 
 .remove:hover {
@@ -832,6 +834,7 @@ footer {
   line-height:1.5;
   margin:10px 0;
   min-height:0;
+  animation:enter .18s ease-out;
 }
 
 .error:empty {
@@ -1099,17 +1102,23 @@ footer {
   background:#f8fcff;
 }
 
+#cash[aria-invalid="true"] {
+  border-color:#b91c1c;
+  background:#fff7f7;
+}
+
 .quick-cash {
   display:flex;
   gap:8px;
   margin:10px 0;
+  flex-wrap:wrap;
 }
 
 .quick-cash button {
   flex:1;
   font-size:12px;
   padding:8px;
-  min-height:44px;
+  min-height:48px;
 }
 
 .keypad {
@@ -1123,7 +1132,7 @@ footer {
   border-radius:9px;
   font-size:20px;
   color:#0f172a;
-  min-height:46px;
+  min-height:52px;
 }
 
 .key:hover {
