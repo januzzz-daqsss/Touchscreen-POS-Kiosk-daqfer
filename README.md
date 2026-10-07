@@ -17,7 +17,7 @@ $env:PORT = '5174'
 npm start
 ```
 
-There is no dependency installation or build step. The development server binds only to this computer (`127.0.0.1`) and serves an explicit list of public files. Use HTTP through this server, rather than opening `index.html` as a file, because the application uses JavaScript modules.
+There are no third-party dependencies to install. If your setup workflow requires an npm installation command, you can run `npm install`; it is optional for this project. There is no build command or compilation step. The development server binds only to this computer (`127.0.0.1`) and serves an explicit list of public files. Use HTTP through this server, rather than opening `index.html` as a file, because the application uses JavaScript modules.
 
 ## Features
 
@@ -74,13 +74,13 @@ npm test
 npm run check
 ```
 
-On October 7, 2026, the 14 automated tests passed. Syntax checks passed. The local server started, returned HTTP 200 for the page, stylesheet, and all three JavaScript modules, and returned HTTP 404 for a non-public file.
+Member 2 verification on October 7, 2026: all 17 automated store tests and the syntax checks passed using Node.js 24.18.0. The receipt/reset tests cover exact item details, cash change, all three payment methods, UUID references, receipt snapshots across successive transactions, clearing declined-payment errors, and rejection of stale payment callbacks after reset. These are business-logic checks; rendering was inspected in source.
 
-**Browser verification is pending.** The available browser tool returned an empty browser inventory and `Browser is not available: iab`. No browser workflow, screenshot inspection, physical touch check, or viewport check was completed. Automated business-logic results must not be interpreted as proof that rendered controls work.
+**Browser verification is pending.** No browser workflow, screenshot inspection, physical touch check, or viewport check was completed for this contribution. Automated business-logic results must not be interpreted as proof that rendered controls work. The manual checklist below records expected behavior, not completed test results.
 
 | Required verification | Actual evidence |
 | --- | --- |
-| Application startup | Server startup and five asset HTTP checks passed; browser runtime pending |
+| Application startup | Local server and asset HTTP smoke checks passed; browser runtime pending |
 | Product selection/add/increase/decrease/remove | Store tests passed; UI interaction pending |
 | Cart totals and review consistency | Store tests passed using 2 lattes + 1 cookie = ₱365.00 |
 | Back navigation and empty checkout | Store tests passed; visible controls pending |
@@ -92,7 +92,9 @@ On October 7, 2026, the 14 automated tests passed. Syntax checks passed. The loc
 | Touch comfort | Controls implemented; physical touch testing pending |
 | 1366×768 and 1920×1080 | Responsive CSS implemented; visual checks pending |
 
-## Manual examination workflow
+## Manual Testing
+
+Use this checklist to exercise the basic POS flow. Supported methods are **Cash**, **QR (simulated)**, and **Card (simulated)**. A transaction is complete only when the successful receipt appears. Check that its products match the reviewed order, each line amount equals quantity times unit price, and the total equals the sum of line amounts. Subtotal and total are equal because there are no additional fees or separate tax calculation. Verify the date/time, payment method, and a nonempty `SKY-` UUID reference; cash receipts must also show the tendered amount and change.
 
 Run this at **both 1366×768 and 1920×1080 browser viewport sizes**, preferably with touch emulation or the actual touchscreen. Confirm labels are readable, controls do not overlap, and catalog/cart scrolling works independently.
 
@@ -109,8 +111,8 @@ Run this at **both 1366×768 and 1920×1080 browser viewport sizes**, preferably
 
 Expected complete sequence: **Welcome → Start Order → Select Products → Modify Quantities → Review Order → Choose Payment Method → Complete Payment → View Receipt → New Transaction → Welcome**.
 
-## Git/GitHub and examination evidence
+## Contribution and examination evidence
 
-The supplied project directory was empty and had no `.git` directory at inspection. No existing stack, tests, or functionality was replaced. This work did not create commits, a GitHub repository, pull requests, or member-attribution records. Your group should create real commits and reviews under its own accounts and record actual contributions. Never present this generated code or log as evidence of unperformed human work.
+Member 2 works on `feature/member2-docs-testing`, focusing on transaction completion, receipt/reset verification, and documentation. This contribution preserves the existing implementation and sky-blue/midnight-navy design. No commits or pushes were made as part of this verification. Record actual manual test outcomes separately, including the environment, date, and any failures; the checklist itself is not evidence that those tests were performed.
 
 Known limitations: browser/viewport checks remain pending; no real payment integration, printer, inventory backend, persistent receipt history, inactivity timeout, or production security deployment. These are outside this self-service demonstration's implemented scope.
