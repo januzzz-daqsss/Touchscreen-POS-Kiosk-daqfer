@@ -15,3 +15,69 @@ test('duplicate taps, stale callbacks, and invalid navigation are guarded',()=>{
 test('transaction references differ across transactions',()=>{const s=paying('qr');s.finishPayment(s.beginPayment());const first=s.state.receipt.reference;s.reset();s.start();s.setQuantity('water',1);s.review();s.checkout();s.selectPayment('qr');s.finishPayment(s.beginPayment());assert.notEqual(s.state.receipt.reference,first);assert.equal(s.state.receipt.total,4500);});
 test('missing product data is filtered and duplicate identifiers rejected',()=>{const s=createStore([null,{id:'broken',name:'Broken',price:-1}]);assert.equal(s.catalog.length,0);const p={id:'same',name:'Same',price:100,category:'Demo'};assert.throws(()=>createStore([p,p]),/Duplicate/);});
 test('payment requires an order, correct screen and method',()=>{const s=ordered();assert.throws(()=>s.beginPayment(),/Choose/);s.review();s.checkout();assert.throws(()=>s.beginPayment(),/Choose/);assert.throws(()=>s.selectPayment('invalid'),/Choose/);});
+
+test('receipt records exact product prices, quantities, line amounts and payment details', () => {
+  for (const method of ['cash', 'qr', 'card']) {
+    const s = paying(method);
+    assert.equal(s.finishPayment(s.beginPayment('500')), true);
+    const r = s.state.receipt;
+    assert.deepEqual(r.items.map(({id, name, quantity, price, subtotal}) => ({id, name, quantity, price, subtotal})), [
+      {id:'latte', name:'Iced cloud latte', quantity:2, price:14500, subtotal:29000},
+      {id:'cookie', name:'Chocolate chunk', quantity:1, price:7500, subtotal:7500}
+    ]);
+    assert.equal(r.count, 3);
+    assert.equal(r.total, 36500);
+    assert.equal(r.tendered, method === 'cash' ? 50000 : 36500);
+    assert.equal(r.change, method === 'cash' ? 13500 : 0);
+    assert.match(r.reference, /^SKY-[0-9A-F]{8}-[0-9A-F]{4}-4[0-9A-F]{3}-[89AB][0-9A-F]{3}-[0-9A-F]{12}$/);
+  }
+});
+
+test('reset clears declined payment errors and invalidates an in-flight payment', () => {
+  for (const declined of [false, true]) {
+    const s = paying('card');
+    const oldToken = s.beginPayment();
+    if (declined) s.finishPayment(oldToken, false);
+    s.reset();
+    assert.deepEqual(s.state, {screen:'welcome', payment:{method:null,status:'idle',error:''}, receipt:null, items:[],count:0,total:0});
+    s.start();
+    s.setQuantity('water', 1);
+    s.review();
+    s.checkout();
+    s.selectPayment('qr');
+    const newToken = s.beginPayment();
+    assert.equal(s.finishPayment(oldToken), false);
+    assert.equal(s.state.receipt, null);
+    assert.equal(s.state.payment.status, 'processing');
+    assert.equal(s.finishPayment(newToken), true);
+    assert.equal(s.state.receipt.method, 'qr');
+    assert.equal(s.state.receipt.total, 4500);
+  }
+});
+
+test('a new transaction contains only its own items and leaves the prior receipt snapshot intact', () => {
+  const s = paying('cash');
+  s.finishPayment(s.beginPayment('500'));
+  const previous = s.state.receipt;
+  s.reset();
+  s.start();
+  assert.equal(s.state.screen, 'order');
+  assert.equal(s.state.receipt, null);
+  assert.equal(s.state.payment.method, null);
+  assert.equal(s.state.count, 0);
+  s.setQuantity('water', 1);
+  s.review();
+  s.checkout();
+  s.selectPayment('card');
+  s.finishPayment(s.beginPayment());
+  const current = s.state.receipt;
+  assert.deepEqual(current.items.map(p => p.id), ['water']);
+  assert.equal(current.total, 4500);
+  assert.equal(current.tendered, 4500);
+  assert.equal(current.change, 0);
+  assert.notEqual(current.reference, previous.reference);
+  assert.equal(previous.total, 36500);
+  assert.equal(previous.tendered, 50000);
+  assert.equal(previous.change, 13500);
+  assert.deepEqual(previous.items.map(p => p.id), ['latte', 'cookie']);
+});
