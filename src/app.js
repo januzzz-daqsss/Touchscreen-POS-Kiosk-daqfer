@@ -54,7 +54,7 @@ function render(focusId) {
       if (previousItems.has(row.dataset.cartId)) row.style.animation='none';
     }
     const total=root.querySelector('.total strong');
-    if(total?.textContent===previousTotal)total.style.animation='none';
+    if(total && total.textContent===previousTotal)total.style.animation='none';
     for (const [selector,top] of scrollPositions) { const el=root.querySelector(selector);if(el)el.scrollTop=top; }
     if (focusData && !focusId) {
       const equivalent=[...root.querySelectorAll('[data-action]')].find(el=>Object.entries(focusData).every(([key,value])=>el.dataset[key]===value));
